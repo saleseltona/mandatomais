@@ -58,18 +58,36 @@ export default async function CadastroPublicoPage({
     linkDetails?.accent_color
   );
 
+  const subtitleParts = linkDetails
+    ? [
+        linkDetails.data_scope === "mandate" ? "Mandato" : "Campanha",
+        linkDetails.office_title,
+        linkDetails.tenant_city
+          ? `${linkDetails.tenant_city}${
+              linkDetails.tenant_state ? `/${linkDetails.tenant_state}` : ""
+            }`
+          : null,
+      ].filter(Boolean)
+    : [];
+
   return (
     <div
       style={themeStyle as React.CSSProperties}
       className="flex min-h-screen flex-col bg-canvas"
     >
       <header className="border-b border-border-subtle bg-white">
-        <div className="mx-auto flex h-14 max-w-2xl items-center justify-between px-4 sm:px-6">
+        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
           <Link
             href="/"
             className="text-base font-semibold tracking-tight text-brand-navy"
           >
-            Mandato<span className="text-brand-emerald">+</span>
+            {linkDetails ? (
+              linkDetails.tenant_name
+            ) : (
+              <>
+                Mandato<span className="text-brand-emerald">+</span>
+              </>
+            )}
           </Link>
           <span className="text-xs text-ink-muted">Cadastro voluntário</span>
         </div>
@@ -77,7 +95,7 @@ export default async function CadastroPublicoPage({
 
       <main
         id="conteudo-principal"
-        className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center px-4 py-8 sm:px-6 sm:py-12"
+        className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center px-4 py-10 sm:px-6 sm:py-14"
       >
         {!supabaseReady ? (
           <div className="rounded-2xl border border-border-subtle bg-white p-6">
@@ -99,40 +117,14 @@ export default async function CadastroPublicoPage({
             </p>
           </div>
         ) : (
-          <div className="rounded-2xl border border-border-subtle bg-white p-6 sm:p-8">
-            <div className="mb-6 border-b border-border-subtle pb-5">
-              <p className="text-xs font-medium text-ink-muted">
-                {linkDetails.data_scope === "mandate" ? "Mandato" : "Campanha"}
-                {linkDetails.office_title ? ` · ${linkDetails.office_title}` : ""}
-              </p>
-
-              <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-ink-primary">
-                {linkDetails.title}
-              </h1>
-              <p className="mt-1 text-sm font-medium text-brand-navy">
-                {linkDetails.tenant_name}
-                {linkDetails.tenant_city
-                  ? ` · ${linkDetails.tenant_city}${
-                      linkDetails.tenant_state
-                        ? `/${linkDetails.tenant_state}`
-                        : ""
-                    }`
-                  : ""}
-              </p>
-
-              {linkDetails.description ? (
-                <p className="mt-2 text-sm leading-relaxed text-ink-secondary">
-                  {linkDetails.description}
-                </p>
-              ) : null}
-            </div>
-
-            <PublicRegistrationForm
-              slug={linkDetails.slug}
-              tenantName={linkDetails.tenant_name}
-              interests={linkDetails.interests ?? []}
-            />
-          </div>
+          <PublicRegistrationForm
+            slug={linkDetails.slug}
+            title={linkDetails.title}
+            description={linkDetails.description}
+            subtitle={subtitleParts.join(" · ")}
+            tenantName={linkDetails.tenant_name}
+            interests={linkDetails.interests ?? []}
+          />
         )}
       </main>
     </div>
