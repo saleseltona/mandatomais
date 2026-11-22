@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@theme inline {
+  /* Sistema de Design Mandato+ — Direção Editorial / Fintech Minimalista */
+  --color-canvas: #f8f9fa;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f3f4f6;
+  --color-surface-subtle: #eef0f3;
+  --color-border-subtle: #e5e7eb;
+  --color-border-strong: #d1d5db;
+
+  --color-ink-primary: #111827;
+  --color-ink-secondary: #525866;
+  --color-ink-muted: #868c98;
+
+  --color-brand-navy: #0b1e36;
+  --color-brand-navy-hover: #132c4c;
+  --color-brand-emerald: #0e7c55;
+  --color-brand-emerald-hover: #0a6343;
+  --color-brand-emerald-soft: #ecfdf5;
+
+  /* Compatibilidade com aliases existentes */
+  --color-primary: #0b1e36;
+  --color-primary-container: #132c4c;
+  --color-secondary: #0e7c55;
+  --color-secondary-hover: #0a6343;
+  --color-navy-950: #081526;
+  --color-navy-900: #0b1e36;
+  --color-navy-800: #132c4c;
+  --color-navy-700: #1e3a5f;
+  --color-navy-100: #e8edf3;
+  --color-navy-50: #f8f9fa;
+
+  --color-emerald-brand-700: #0a6343;
+  --color-emerald-brand-600: #0e7c55;
+  --color-emerald-brand-500: #109465;
+  --color-emerald-brand-100: #d1fae5;
+  --color-emerald-brand-50: #ecfdf5;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: #f8f9fa;
+    color: #111827;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  :focus-visible {
+    outline: 2px solid #0b1e36;
+    outline-offset: 2px;
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
