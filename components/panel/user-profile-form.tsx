@@ -1,11 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import {
   updatePasswordAction,
   updateUserProfileAction,
   type ProfileActionState,
 } from "@/app/painel/perfil/actions";
+import { ImageUploadField } from "@/components/panel/image-upload-field";
 import { Button } from "@/components/ui/button";
 import type { UserProfile } from "@/lib/types/database";
 
@@ -18,6 +19,7 @@ export function UserProfileForm({
   email: string;
   profile: UserProfile | null;
 }) {
+  const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url ?? "");
   const [profileState, profileAction, profilePending] = useActionState(
     updateUserProfileAction,
     initialState
@@ -131,23 +133,15 @@ export function UserProfileForm({
             </div>
           </div>
 
-          <div>
-            <label
-              htmlFor="profile-avatar"
-              className="block text-xs font-medium text-ink-secondary"
-            >
-              URL da foto de perfil (opcional)
-            </label>
-            <input
-              id="profile-avatar"
-              name="avatarUrl"
-              type="url"
-              disabled={profilePending}
-              defaultValue={profile?.avatar_url ?? ""}
-              placeholder="https://..."
-              className="mt-1.5 block h-11 w-full rounded-xl border border-border-subtle bg-white px-3.5 text-sm text-ink-primary focus:border-brand-navy focus:outline-none"
-            />
-          </div>
+          <ImageUploadField
+            id="profile-avatar"
+            name="avatarUrl"
+            label="Foto de perfil (URL ou upload)"
+            target="profile"
+            value={avatarUrl}
+            onChange={setAvatarUrl}
+            disabled={profilePending}
+          />
 
           <Button type="submit" variant="primary" size="md" disabled={profilePending}>
             {profilePending ? "Salvando..." : "Salvar perfil"}

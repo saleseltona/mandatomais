@@ -82,3 +82,58 @@ export function getTodayInBrazil(now: Date = new Date()): {
 
   return { day, month };
 }
+
+/**
+ * Calcula quantos dias faltam para o próximo aniversário (0 = hoje, 1..365).
+ */
+export function daysUntilBirthday(
+  birthDay: number,
+  birthMonth: number,
+  now: Date = new Date()
+): number {
+  const { day: todayDay, month: todayMonth } = getTodayInBrazil(now);
+  const year = now.getUTCFullYear();
+
+  const todayUtc = Date.UTC(year, todayMonth - 1, todayDay);
+  let nextUtc = Date.UTC(year, birthMonth - 1, birthDay);
+
+  if (nextUtc < todayUtc) {
+    nextUtc = Date.UTC(year + 1, birthMonth - 1, birthDay);
+  }
+
+  return Math.round((nextUtc - todayUtc) / 86_400_000);
+}
+
+/**
+ * Gera link oficial do WhatsApp (wa.me) para atualização individual de demanda
+ * (somente para contato com consentimento ativo, incluindo link de descadastro).
+ */
+export function buildOfficialDemandUpdateWhatsAppUrl(params: {
+  fullName: string;
+  whatsapp: string | null;
+  consentStatus: ConsentStatus;
+  tenantName: string;
+  demandTitle: string;
+  protocol: string;
+  statusLabel: string;
+  unsubscribeToken: string;
+  appUrl: string;
+}): string | null {
+  if (params.consentStatus !== "granted") return null;
+  const phone = formatBrazilianWhatsAppE164(params.whatsapp);
+  if (!phone) return null;
+
+  const firstName = params.fullName.trim().split(/\s+/)[0] || "Olá";
+  const cleanAppUrl = params.appUrl.replace(/\/+$/, "");
+  const unsubscribeUrl = `${cleanAppUrl}/descadastro/${params.unsubscribeToken}`;
+
+  const message = [
+    `Olá, ${firstName}!`,
+    `Atualização sobre sua solicitação (${params.protocol}) — "${params.demandTitle}": status atualizado para ${params.statusLabel}.`,
+    `Equipe ${params.tenantName}.`,
+    "",
+    `Para cancelar o recebimento de mensagens a qualquer momento: ${unsubscribeUrl}`,
+  ].join("\n");
+
+  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+}

@@ -6,6 +6,7 @@ import {
   updateTenantBrandingAction,
   type SettingsActionState,
 } from "@/app/painel/configuracoes/actions";
+import { ImageUploadField } from "@/components/panel/image-upload-field";
 import { Button } from "@/components/ui/button";
 import type { Tenant } from "@/lib/types/database";
 import {
@@ -131,43 +132,25 @@ export function TenantBrandingForm({
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label
-              htmlFor="brand-logo"
-              className="block text-xs font-medium text-ink-secondary"
-            >
-              URL do logotipo (opcional)
-            </label>
-            <input
-              id="brand-logo"
-              name="logoUrl"
-              type="url"
-              disabled={!canEdit || pending}
-              value={logoUrl}
-              onChange={(e) => setLogoUrl(e.target.value)}
-              placeholder="https://..."
-              className="mt-1.5 block h-11 w-full rounded-xl border border-border-subtle bg-white px-3.5 text-sm text-ink-primary focus:border-brand-navy focus:outline-none"
-            />
-          </div>
+          <ImageUploadField
+            id="brand-logo"
+            name="logoUrl"
+            label="Logotipo (URL ou upload)"
+            target="tenant_logo"
+            value={logoUrl}
+            onChange={setLogoUrl}
+            disabled={!canEdit || pending}
+          />
 
-          <div>
-            <label
-              htmlFor="brand-avatar"
-              className="block text-xs font-medium text-ink-secondary"
-            >
-              URL da foto do responsável (opcional)
-            </label>
-            <input
-              id="brand-avatar"
-              name="avatarUrl"
-              type="url"
-              disabled={!canEdit || pending}
-              value={avatarUrl}
-              onChange={(e) => setAvatarUrl(e.target.value)}
-              placeholder="https://..."
-              className="mt-1.5 block h-11 w-full rounded-xl border border-border-subtle bg-white px-3.5 text-sm text-ink-primary focus:border-brand-navy focus:outline-none"
-            />
-          </div>
+          <ImageUploadField
+            id="brand-avatar"
+            name="avatarUrl"
+            label="Foto do responsável (URL ou upload)"
+            target="tenant_avatar"
+            value={avatarUrl}
+            onChange={setAvatarUrl}
+            disabled={!canEdit || pending}
+          />
         </div>
 
         {/* Prévia Mobile e Desktop */}

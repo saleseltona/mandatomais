@@ -238,3 +238,45 @@ export interface TenantIntegration {
   disconnected_at: string | null;
   updated_at: string;
 }
+
+export type DemandPriority = "baixa" | "media" | "alta";
+
+export type DemandStatus = "recebida" | "em_execucao" | "resolvida";
+
+export interface Demand {
+  id: string;
+  tenant_id: string;
+  data_scope: DataScope;
+  protocol: string;
+  title: string;
+  description: string | null;
+  category: string | null;
+  city: string;
+  neighborhood: string | null;
+  priority: DemandPriority;
+  status: DemandStatus;
+  contact_id: string | null;
+  requester_name: string | null;
+  office_note: string | null;
+  created_by: string | null;
+  updated_by: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MandateAction {
+  id: string;
+  tenant_id: string;
+  data_scope: DataScope;
+  title: string;
+  summary: string;
+  category: string | null;
+  city: string | null;
+  neighborhood: string | null;
+  action_date: string;
+  is_public: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}

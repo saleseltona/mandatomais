@@ -1,5 +1,6 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -8,6 +9,7 @@ import {
   CURRENT_CONSENT_VERSION,
 } from "@/lib/constants/consent";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { ACTIVE_TENANT_COOKIE } from "@/lib/supabase/panel-data";
 import { createClient } from "@/lib/supabase/server";
 import {
   bootstrapTenantSchema,
@@ -40,7 +42,41 @@ export async function signOutAction() {
     const supabase = await createClient();
     await supabase.auth.signOut();
   }
+  const cookieStore = await cookies();
+  cookieStore.delete(ACTIVE_TENANT_COOKIE);
   redirect("/entrar");
+}
+
+export async function switchTenantAction(formData: FormData) {
+  if (!isSupabaseConfigured()) return;
+
+  const tenantId = String(formData.get("tenantId") ?? "");
+  if (!tenantId) return;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/entrar");
+
+  const { data: membership } = await supabase
+    .from("tenant_members")
+    .select("tenant_id")
+    .eq("user_id", user.id)
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+
+  if (!membership) return;
+
+  const cookieStore = await cookies();
+  cookieStore.set(ACTIVE_TENANT_COOKIE, tenantId, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30,
+  });
+
+  revalidatePath("/painel", "layout");
 }
 
 export async function bootstrapTenantAction(

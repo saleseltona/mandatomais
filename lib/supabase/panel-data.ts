@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { hasPermission } from "@/lib/auth/permissions";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -6,6 +7,7 @@ import type {
   ConsentRecord,
   Contact,
   DataScope,
+  Demand,
   Interest,
   PublicLink,
   Tenant,
@@ -13,6 +15,8 @@ import type {
   UserProfile,
 } from "@/lib/types/database";
 import { getTodayInBrazil } from "@/lib/utils/whatsapp";
+
+export const ACTIVE_TENANT_COOKIE = "mandato_active_tenant_id";
 
 interface MembershipRow {
   tenant_id: string;
@@ -55,6 +59,7 @@ export interface PanelBaseContext {
 export interface PanelSummaryData extends PanelBaseContext {
   activeContactsCount: number;
   todaysBirthdays: Contact[];
+  recentDemands: Demand[];
   links: PublicLink[];
   interests: Interest[];
 }
@@ -129,7 +134,12 @@ export async function loadAuthenticatedMembership(
       tenant: m.tenants,
     }));
 
-  const primary = allMemberships[0] ?? null;
+  const cookieStore = await cookies();
+  const preferredTenantId = cookieStore.get(ACTIVE_TENANT_COOKIE)?.value;
+  const primary =
+    allMemberships.find((m) => m.tenant_id === preferredTenantId) ??
+    allMemberships[0] ??
+    null;
   const tenant = primary?.tenant ?? null;
   const role = primary?.role ?? null;
 
@@ -163,6 +173,7 @@ export async function loadPanelSummary(
       ...base,
       activeContactsCount: 0,
       todaysBirthdays: [],
+      recentDemands: [],
       links: [],
       interests: [],
     };
@@ -174,6 +185,7 @@ export async function loadPanelSummary(
   const [
     { count: activeCount },
     { data: birthdayRows },
+    { data: demandRows },
     { data: linkRows },
     { data: interestRows },
   ] = await Promise.all([
@@ -193,6 +205,13 @@ export async function loadPanelSummary(
       .eq("birth_month", todayMonth)
       .order("full_name", { ascending: true }),
     supabase
+      .from("demands")
+      .select("*")
+      .eq("tenant_id", base.tenant.id)
+      .eq("data_scope", base.activeScope)
+      .order("updated_at", { ascending: false })
+      .limit(4),
+    supabase
       .from("public_links")
       .select("*")
       .eq("tenant_id", base.tenant.id)
@@ -210,6 +229,7 @@ export async function loadPanelSummary(
     ...base,
     activeContactsCount: activeCount ?? 0,
     todaysBirthdays: (birthdayRows as Contact[] | null) ?? [],
+    recentDemands: (demandRows as Demand[] | null) ?? [],
     links: (linkRows as PublicLink[] | null) ?? [],
     interests: (interestRows as Interest[] | null) ?? [],
   };

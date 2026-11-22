@@ -63,6 +63,7 @@ export default async function PainelPage({
   return (
     <PanelShell
       tenant={ctx.tenant}
+      allMemberships={ctx.allMemberships}
       userEmail={ctx.userEmail}
       userProfile={ctx.userProfile}
       activeScope={ctx.activeScope}
@@ -223,6 +224,59 @@ export default async function PainelPage({
                       </Link>
                     )}
                   </div>
+                </section>
+              ) : null}
+
+              {/* 4. Demandas recentes (exibida somente quando houver demandas registradas) */}
+              {ctx.recentDemands.length > 0 ? (
+                <section aria-labelledby="demandas-heading" className="space-y-2.5">
+                  <div className="flex items-baseline justify-between px-1">
+                    <h2
+                      id="demandas-heading"
+                      className="text-sm font-semibold text-ink-primary"
+                    >
+                      Demandas recentes
+                    </h2>
+                    <Link
+                      href={`/painel/demandas${scopeQuery}`}
+                      className="text-xs font-medium text-ink-secondary hover:text-brand-navy"
+                    >
+                      Ver todas
+                    </Link>
+                  </div>
+
+                  <ul className="divide-y divide-border-subtle/70 rounded-2xl border border-border-subtle bg-white">
+                    {ctx.recentDemands.map((demand) => (
+                      <li
+                        key={demand.id}
+                        className="flex items-center justify-between gap-3 px-4 py-3"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-ink-primary">
+                            {demand.title}
+                          </p>
+                          <p className="truncate text-xs text-ink-muted">
+                            {demand.neighborhood
+                              ? `${demand.neighborhood}, ${demand.city}`
+                              : demand.city}
+                          </p>
+                        </div>
+                        <span
+                          className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
+                            demand.status === "resolvida"
+                              ? "bg-brand-emerald-soft text-brand-emerald"
+                              : "bg-surface-muted text-ink-secondary"
+                          }`}
+                        >
+                          {demand.status === "resolvida"
+                            ? "Resolvida"
+                            : demand.status === "em_execucao"
+                              ? "Em execução"
+                              : "Recebida"}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
                 </section>
               ) : null}
 

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   buildOfficialBirthdayWhatsAppUrl,
+  buildOfficialDemandUpdateWhatsAppUrl,
+  daysUntilBirthday,
   formatBrazilianWhatsAppE164,
   getTodayInBrazil,
 } from "@/lib/utils/whatsapp";
@@ -51,5 +53,33 @@ describe("Aniversariantes e link oficial do WhatsApp (regras Mandato+)", () => {
     // 2026-05-10T01:30:00Z corresponde a 2026-05-09 22:30 em Brasília (UTC-3)
     const date = new Date("2026-05-10T01:30:00Z");
     expect(getTodayInBrazil(date)).toEqual({ day: 9, month: 5 });
+  });
+
+  it("calcula quantos dias faltam para próximos aniversários", () => {
+    const ref = new Date("2026-05-10T15:00:00Z"); // 10/05 em Brasília
+    expect(daysUntilBirthday(10, 5, ref)).toBe(0);
+    expect(daysUntilBirthday(15, 5, ref)).toBe(5);
+    expect(daysUntilBirthday(9, 5, ref)).toBeGreaterThan(360);
+  });
+
+  it("gera link oficial de atualização de demanda com protocolo e descadastro", () => {
+    const token = "22222222-2222-4222-8222-222222222222";
+    const url = buildOfficialDemandUpdateWhatsAppUrl({
+      fullName: "José Silva",
+      whatsapp: "99988887777",
+      consentStatus: "granted",
+      tenantName: "Gabinete Exemplo",
+      demandTitle: "Iluminação da praça",
+      protocol: "DEM-2026-1042",
+      statusLabel: "Resolvida",
+      unsubscribeToken: token,
+      appUrl: "https://mandatoplus.vercel.app",
+    });
+
+    expect(url).not.toBeNull();
+    const decoded = decodeURIComponent(url!.split("?text=")[1] ?? "");
+    expect(decoded).toContain("DEM-2026-1042");
+    expect(decoded).toContain("Resolvida");
+    expect(decoded).toContain(`/descadastro/${token}`);
   });
 });

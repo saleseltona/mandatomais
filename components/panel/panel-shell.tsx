@@ -1,15 +1,37 @@
 import type * as React from "react";
 import Link from "next/link";
-import { Home, Link2, LogOut, Settings, User, Users } from "lucide-react";
-import { signOutAction } from "@/app/painel/actions";
-import { getTenantDisplayName } from "@/lib/supabase/panel-data";
+import {
+  Cake,
+  ClipboardList,
+  Home,
+  Link2,
+  LogOut,
+  Megaphone,
+  Settings,
+  User,
+  Users,
+} from "lucide-react";
+import { signOutAction, switchTenantAction } from "@/app/painel/actions";
+import {
+  getTenantDisplayName,
+  type UserTenantSummary,
+} from "@/lib/supabase/panel-data";
 import type { DataScope, Tenant, UserProfile } from "@/lib/types/database";
 import { buildTenantThemeStyle } from "@/lib/utils/branding";
 
-type ActiveTab = "inicio" | "base" | "links" | "configuracoes" | "perfil";
+type ActiveTab =
+  | "inicio"
+  | "base"
+  | "demandas"
+  | "aniversariantes"
+  | "transparencia"
+  | "links"
+  | "configuracoes"
+  | "perfil";
 
 export function PanelShell({
   tenant,
+  allMemberships = [],
   userEmail,
   userProfile,
   activeScope,
@@ -17,6 +39,7 @@ export function PanelShell({
   children,
 }: {
   tenant: Tenant | null;
+  allMemberships?: UserTenantSummary[];
   userEmail: string;
   userProfile?: UserProfile | null;
   activeScope: DataScope;
@@ -31,7 +54,7 @@ export function PanelShell({
   const displayName = getTenantDisplayName(tenant);
   const personalName = userProfile?.full_name?.trim() || userEmail;
 
-  const navItems = [
+  const sidebarItems = [
     {
       id: "inicio" as const,
       label: "Início",
@@ -45,6 +68,24 @@ export function PanelShell({
       icon: Users,
     },
     {
+      id: "demandas" as const,
+      label: "Demandas",
+      href: `/painel/demandas${scopeQuery}`,
+      icon: ClipboardList,
+    },
+    {
+      id: "aniversariantes" as const,
+      label: "Aniversariantes",
+      href: `/painel/aniversariantes${scopeQuery}`,
+      icon: Cake,
+    },
+    {
+      id: "transparencia" as const,
+      label: "Transparência",
+      href: `/painel/transparencia${scopeQuery}`,
+      icon: Megaphone,
+    },
+    {
       id: "links" as const,
       label: "Links",
       href: `/painel/links${scopeQuery}`,
@@ -53,7 +94,33 @@ export function PanelShell({
     {
       id: "configuracoes" as const,
       label: "Configurações",
-      shortLabel: "Ajustes",
+      href: `/painel/configuracoes${scopeQuery}`,
+      icon: Settings,
+    },
+  ];
+
+  const mobileItems = [
+    {
+      id: "inicio" as const,
+      label: "Início",
+      href: `/painel${scopeQuery}`,
+      icon: Home,
+    },
+    {
+      id: "base" as const,
+      label: "Base",
+      href: `/painel/base${scopeQuery}`,
+      icon: Users,
+    },
+    {
+      id: "demandas" as const,
+      label: "Demandas",
+      href: `/painel/demandas${scopeQuery}`,
+      icon: ClipboardList,
+    },
+    {
+      id: "configuracoes" as const,
+      label: "Ajustes",
       href: `/painel/configuracoes${scopeQuery}`,
       icon: Settings,
     },
@@ -62,11 +129,17 @@ export function PanelShell({
   const basePathForScope =
     activeTab === "base"
       ? "/painel/base"
-      : activeTab === "links"
-        ? "/painel/links"
-        : activeTab === "configuracoes"
-          ? "/painel/configuracoes"
-          : "/painel";
+      : activeTab === "demandas"
+        ? "/painel/demandas"
+        : activeTab === "aniversariantes"
+          ? "/painel/aniversariantes"
+          : activeTab === "transparencia"
+            ? "/painel/transparencia"
+            : activeTab === "links"
+              ? "/painel/links"
+              : activeTab === "configuracoes"
+                ? "/painel/configuracoes"
+                : "/painel";
 
   return (
     <div
@@ -90,11 +163,37 @@ export function PanelShell({
           </Link>
         </div>
 
+        {/* Seletor multi-mandato (exibido somente quando o usuário participa de 2+ ambientes) */}
+        {allMemberships.length > 1 && tenant ? (
+          <div className="border-b border-border-subtle px-4 pb-3">
+            <form action={switchTenantAction} className="flex items-center gap-1.5">
+              <select
+                name="tenantId"
+                defaultValue={tenant.id}
+                aria-label="Alternar mandato ativo"
+                className="h-8 min-w-0 flex-1 rounded-lg border border-border-subtle bg-canvas px-2 text-xs font-medium text-ink-primary"
+              >
+                {allMemberships.map((m) => (
+                  <option key={m.tenant_id} value={m.tenant_id}>
+                    {getTenantDisplayName(m.tenant)}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="submit"
+                className="h-8 rounded-lg border border-border-subtle bg-white px-2 text-[11px] font-medium text-ink-secondary hover:text-ink-primary"
+              >
+                Trocar
+              </button>
+            </form>
+          </div>
+        ) : null}
+
         <nav
           aria-label="Navegação principal"
-          className="flex-1 space-y-1 px-3 py-2"
+          className="flex-1 space-y-0.5 overflow-y-auto px-3 py-2"
         >
-          {navItems.map((item) => {
+          {sidebarItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
             return (
@@ -102,7 +201,7 @@ export function PanelShell({
                 key={item.id}
                 href={item.href}
                 aria-current={isActive ? "page" : undefined}
-                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+                className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors ${
                   isActive
                     ? "bg-surface-muted font-semibold text-brand-navy"
                     : "font-medium text-ink-secondary hover:bg-canvas hover:text-ink-primary"
@@ -159,13 +258,19 @@ export function PanelShell({
               }`}
             >
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-muted text-ink-secondary">
-                <User className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden="true" />
+                <User
+                  className="h-3.5 w-3.5"
+                  strokeWidth={1.75}
+                  aria-hidden="true"
+                />
               </span>
               <div className="min-w-0">
                 <p className="truncate text-xs font-medium text-ink-primary">
                   {personalName}
                 </p>
-                <p className="truncate text-[11px] text-ink-muted">Meu perfil</p>
+                <p className="truncate text-[11px] text-ink-muted">
+                  Meu perfil
+                </p>
               </div>
             </Link>
 
@@ -202,7 +307,7 @@ export function PanelShell({
           className="fixed inset-x-0 bottom-0 z-40 border-t border-border-subtle bg-white pb-safe lg:hidden"
         >
           <div className="mx-auto grid max-w-md grid-cols-4 px-2 pt-1.5">
-            {navItems.map((item) => {
+            {mobileItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
               return (
@@ -221,7 +326,7 @@ export function PanelShell({
                     strokeWidth={isActive ? 2.1 : 1.75}
                     aria-hidden="true"
                   />
-                  <span>{item.shortLabel ?? item.label}</span>
+                  <span>{item.label}</span>
                 </Link>
               );
             })}
