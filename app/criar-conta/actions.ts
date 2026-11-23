@@ -122,13 +122,34 @@ export async function signUpWithProfileAction(
   }
 
   const supabase = await createClient();
+  const primaryColor = sanitizeHexColor(
+    parsed.data.primaryColor,
+    DEFAULT_PRIMARY_COLOR
+  );
+  const accentColor = sanitizeHexColor(
+    parsed.data.accentColor,
+    DEFAULT_ACCENT_COLOR
+  );
+
   const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
       data: {
         full_name: parsed.data.fullName,
+        phone: parsed.data.phone,
         team_role_label: parsed.data.teamRoleLabel,
+        pending_onboarding: {
+          org_name: parsed.data.orgName,
+          slug: parsed.data.slug,
+          organization_type: parsed.data.organizationType,
+          office_title: parsed.data.officeTitle,
+          city: parsed.data.city,
+          state: parsed.data.state,
+          instagram: parsed.data.instagram,
+          primary_color: primaryColor,
+          accent_color: accentColor,
+        },
       },
     },
   });
@@ -142,7 +163,9 @@ export async function signUpWithProfileAction(
     };
   }
 
-  // Se o projeto Supabase exige confirmação por e-mail, não há sessão ativa ainda
+  // Se o projeto Supabase exige confirmação por e-mail, não há sessão ativa ainda.
+  // Os dados do mandato já foram salvos em user_metadata.pending_onboarding e serão
+  // concluídos automaticamente no primeiro acesso após a confirmação do e-mail.
   if (!signUpData.session || !signUpData.user) {
     return {
       error: null,
@@ -152,15 +175,6 @@ export async function signUpWithProfileAction(
   }
 
   // Sessão ativa: grava perfil pessoal e inicializa o mandato imediatamente
-  const primaryColor = sanitizeHexColor(
-    parsed.data.primaryColor,
-    DEFAULT_PRIMARY_COLOR
-  );
-  const accentColor = sanitizeHexColor(
-    parsed.data.accentColor,
-    DEFAULT_ACCENT_COLOR
-  );
-
   await supabase.from("user_profiles").upsert(
     {
       user_id: signUpData.user.id,

@@ -1,6 +1,7 @@
 import type * as React from "react";
 import Link from "next/link";
 import {
+  BarChart3,
   Cake,
   ClipboardList,
   Home,
@@ -26,6 +27,7 @@ type ActiveTab =
   | "aniversariantes"
   | "transparencia"
   | "links"
+  | "pesquisas"
   | "configuracoes"
   | "perfil";
 
@@ -90,6 +92,12 @@ export function PanelShell({
       label: "Links",
       href: `/painel/links${scopeQuery}`,
       icon: Link2,
+    },
+    {
+      id: "pesquisas" as const,
+      label: "Pesquisas",
+      href: `/painel/pesquisas${scopeQuery}`,
+      icon: BarChart3,
     },
     {
       id: "configuracoes" as const,

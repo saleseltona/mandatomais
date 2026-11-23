@@ -110,7 +110,7 @@ export async function loadAuthenticatedMembership(
   const activeScope: DataScope =
     rawScope === "campaign" ? "campaign" : "mandate";
 
-  const [{ data: membershipRows }, { data: profileRow }] = await Promise.all([
+  let [{ data: membershipRows }, { data: profileRow }] = await Promise.all([
     supabase
       .from("tenant_members")
       .select("tenant_id, role, tenants(*)")
@@ -122,6 +122,125 @@ export async function loadAuthenticatedMembership(
       .eq("user_id", user.id)
       .maybeSingle(),
   ]);
+
+  // Se o usuário já preencheu o formulário completo em /criar-conta antes de confirmar o e-mail,
+  // inicializa o perfil e o mandato automaticamente no primeiro acesso (evitando onboarding duplicado).
+  const rawMeta = (user.user_metadata ?? {}) as Record<string, unknown>;
+  const pendingOnboarding =
+    rawMeta.pending_onboarding &&
+    typeof rawMeta.pending_onboarding === "object"
+      ? (rawMeta.pending_onboarding as Record<string, unknown>)
+      : null;
+
+  if ((!membershipRows || membershipRows.length === 0) && pendingOnboarding) {
+    const metaName =
+      typeof rawMeta.full_name === "string" && rawMeta.full_name.trim()
+        ? rawMeta.full_name.trim()
+        : null;
+    const metaPhone =
+      typeof rawMeta.phone === "string" && rawMeta.phone.trim()
+        ? rawMeta.phone.trim()
+        : null;
+    const metaRole =
+      typeof rawMeta.team_role_label === "string" &&
+      rawMeta.team_role_label.trim()
+        ? rawMeta.team_role_label.trim()
+        : null;
+
+    if (metaName) {
+      await supabase.from("user_profiles").upsert(
+        {
+          user_id: user.id,
+          full_name: metaName,
+          phone: metaPhone,
+          team_role_label: metaRole,
+        },
+        { onConflict: "user_id" }
+      );
+    }
+
+    const orgName =
+      typeof pendingOnboarding.org_name === "string" &&
+      pendingOnboarding.org_name.trim()
+        ? pendingOnboarding.org_name.trim()
+        : null;
+    const rawSlug =
+      typeof pendingOnboarding.slug === "string" &&
+      pendingOnboarding.slug.trim()
+        ? pendingOnboarding.slug.trim().toLowerCase()
+        : null;
+
+    if (orgName && rawSlug) {
+      const baseParams = {
+        p_name: orgName,
+        p_office_title:
+          typeof pendingOnboarding.office_title === "string"
+            ? pendingOnboarding.office_title
+            : null,
+        p_city:
+          typeof pendingOnboarding.city === "string"
+            ? pendingOnboarding.city
+            : null,
+        p_state:
+          typeof pendingOnboarding.state === "string"
+            ? pendingOnboarding.state
+            : null,
+        p_public_display_name: orgName,
+        p_organization_type:
+          typeof pendingOnboarding.organization_type === "string"
+            ? pendingOnboarding.organization_type
+            : "mandate",
+        p_bio: null,
+        p_primary_color:
+          typeof pendingOnboarding.primary_color === "string"
+            ? pendingOnboarding.primary_color
+            : "#0B1E36",
+        p_accent_color:
+          typeof pendingOnboarding.accent_color === "string"
+            ? pendingOnboarding.accent_color
+            : "#0E7C55",
+        p_logo_url: null,
+        p_avatar_url: null,
+        p_social_links:
+          typeof pendingOnboarding.instagram === "string" &&
+          pendingOnboarding.instagram.trim()
+            ? { instagram: pendingOnboarding.instagram.trim() }
+            : {},
+      };
+
+      const { error: firstTryError } = await supabase.rpc(
+        "bootstrap_first_tenant",
+        { ...baseParams, p_slug: rawSlug }
+      );
+
+      if (firstTryError && firstTryError.code === "23505") {
+        const fallbackSlug = `${rawSlug.slice(0, 52)}-${user.id.slice(0, 6)}`;
+        await supabase.rpc("bootstrap_first_tenant", {
+          ...baseParams,
+          p_slug: fallbackSlug,
+        });
+      }
+
+      await supabase.auth.updateUser({
+        data: { pending_onboarding: null },
+      });
+
+      const refreshed = await Promise.all([
+        supabase
+          .from("tenant_members")
+          .select("tenant_id, role, tenants(*)")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: true }),
+        supabase
+          .from("user_profiles")
+          .select("*")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+      ]);
+      membershipRows = refreshed[0].data;
+      profileRow = refreshed[1].data;
+    }
+  }
 
   const typedMemberships =
     (membershipRows as unknown as MembershipRow[] | null) ?? [];
